@@ -1,57 +1,33 @@
-.. _doc-extensions:
+.. _extensions:
 
 Extensions
 ==========
 
-Extensions are a way to allow you to incorporate custom code into you GenieACS
-provisioning process. An extension is a custom piece of Javascript which can be
-called from your provisioning script.
+Given that :ref:`provisions` and :ref:`virtual-parameters` are executed in a
+sandbox environment, it is not possible to interact with external sources or
+execute any action that requires OS, file system, or network access. Extensions
+exist to bridge that gap.
 
-The script must be created in the <genieacs home>/config/ext/ directory.
-(you'll have to create the /ext/ directory)
+Extensions are fully-privileged Node.js modules and as such have access to
+standard Node libraries and 3rd party packages. Functions exposed by the
+extension can be called from Provision scripts using the ``ext()`` function. A
+typical use case for extensions is fetching credentials from a database to have
+that pushed to the device during provisioning.
 
-The script should consist of one or more functions, and exit using the provided
-callback. For example;
+By default, the extension JS code must be placed under ``config/ext``
+directory. You may need to create that directory if it doesn't already exist.
 
-.. code:: javascript
+The example extension below fetches data from an external REST API and returns
+that to the caller:
 
-  const logger = require('../../lib/logger');
+.. literalinclude:: ext-sample.js
+  :language: javascript
 
-  function getCreds(args, callback) {
-    let serial = args[0];
-    //Logger functions are: info, warn, error
-    logger.info({message: 'Getting mgmt credentials', serial: serial}); //message is the only required argument
-  
-    let result = {
-      username: "cpe",
-      password: serial
-    };
-  
-    callback(null, result);
-  }
-  
-  exports.getManagementCreds = getCreds;
-
-The first parameter on the callback is an error value. Set this to something
-sensible to return an error to the provision script.
-
-You can call other functions or load other scripts from the same directory to
-perform complex functions. Any modules you install into GenieACS can be used
-from the extension script. Use `require` to use installed modules.
-
-To call the above script, create a provision script which contains the
-instruction:
+To call this extension from a Provision or a Virtual Parameter script:
 
 .. code:: javascript
 
-  ext("fileName", "functionName", "arg1", ..."argn");
-
-Example provision script that calls an external module:
-
-.. code:: javascript
-
-  let serial = declare("DeviceID.SerialNumber", {value: 1}).value[0];
-  let response = ext("creds", "getManagementCreds", serial);
-
-  declare("InternetGatewayDevice.ManagementServer.Username", {value: 1}, {value: response.username});
-  declare("InternetGatewayDevice.ManagementServer.Password", {value: 1}, {value: response.password});
+  // The arguments "arg1" and "arg2" are passed to the latlong. Though they are
+  // unused in this particular example.
+  const res = ext("ext-sample", "latlong", "arg1", "arg2");
+  log(JSON.stringify(res));

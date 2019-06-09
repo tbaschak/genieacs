@@ -1,47 +1,43 @@
 API Reference
 =============
 
-GenieACS expoeses a rich API through its NBI component. The API is HTTP based
-and uses JSON as the data format. This document serves as a reference for the
-available APIs.
+GenieACS expoeses a rich RESTful API through its NBI component. This document
+serves as a reference for the available APIs.
 
-For reference on search query format, refer to MongoDB queries.
+This API makes use of MongoDB's query language in some of its endpoints. Refer
+to MongoDB's documentation for details.
 
-The examples below are done using curl for simplicity and ease of testing.
-Query parameters are URL-encoded, but non encoded params are included as a
-comment for reference. The examples assume genieacs-nbi is running locally and
-listening to the default NBI port (7557).
+.. note::
 
-The following genieacs resources can be R/W accessed:
+  The examples below use ``curl`` command for simplicity and ease of testing.
+  Query parameters are URL-encoded, but the original pre-encoding values are
+  shown for reference. These examples assume genieacs-nbi is running locally
+  and listening on the default NBI port (7557).
 
-- /devices/
-- /tasks/ (on /devices/ resource)
-- /tags/ (on /devices/ resource)
-- /faults/
-- /presets/
-- /provisions/
-- /files/
-- /ping/
+.. warning::
 
-Functions
+  A common pitfll is not properly percent-encoding special characters in the
+  device ID or query in the URL.
+
+Endpoints
 ---------
 
 GET /\<collection\>/?query=\<query\>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Search for items in database (e.g. devices, tasks, presets, files). Returns a
-JSON representation of all items in the given collection that match the search
-criteria.
+Search for records in the database (e.g. devices, tasks, presets, files).
+Returns a JSON representation of all items in the given collection that match
+the search criteria.
 
-*Collection*: The data collection to search. Could be one of: tasks, devices,
+*collection*: The data collection to search. Could be one of: tasks, devices,
 presets, objects.
 
-*Query*: Search query. Refer to MongoDB queries for reference.
+*query*: Search query. Refer to MongoDB queries for reference.
 
 Examples
 ^^^^^^^^
 
-- Find device by its ID:
+- Find a device by its ID:
 
 .. code:: javascript
 
@@ -63,7 +59,7 @@ Examples
 
   curl -i 'http://localhost:7557/devices/?query=%7B%22InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.MACAddress%22%3A%2220:2B:C1:E0:06:65%22%7D'
 
-- Search for devices which have not sent an inform in the last 7 days.
+- Search for devices that have not initiated an inform in the last 7 days.
 
 .. code:: javascript
 
@@ -97,20 +93,25 @@ Examples
 
   curl -i 'http://localhost:7557/devices?query=%7B%22_id%22%3A%22202BC1-BM632w-0000000%22%7D&projection=InternetGatewayDevice.DeviceInfo.ModelName,InternetGatewayDevice.DeviceInfo.Manufacturer'
 
-The projection is a comma separated list of the values you want.
+The ``projection`` URL param is a comma-separated list of the parameters to receive.
 
 POST /devices/\<device_id\>/tasks?[connection_request]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Append a task to queue for a given device. Refer to below for reference about
-tasks format. Returns status code 200 if tasks have been successfully executed,
-and 202 if the tasks have been queued to be executed at the next inform.
+Enqueue task(s) and optionally trigger a connection request to the device.
+Refer to :ref:`tasks` section for information about the task object format.
+Returns status code 200 if the tasks have been successfully executed, and 202
+if the tasks have been queued to be executed at the next inform.
 
-*device_id*: The ID of the device
+*device_id*: The ID of the device.
 
-*connection_request*: Indicates that connection request will be triggered to
-execute the tasks immediatly. Otherwise, tasks will be queued and be handled at
-the next inform.
+*connection_request*: Indicates that a connection request will be triggered to
+execute the tasks immediatly. Otherwise, the tasks will be queued and be
+processed at the next inform.
+
+The response body is the task object as it is inserted in the database. The
+object will include ``_id`` property which you can use to look up the task
+later.
 
 Examples
 ^^^^^^^^
@@ -121,14 +122,14 @@ Examples
 
   curl -i 'http://localhost:7557/devices/202BC1-BM632w-0000000/tasks?connection_request' \
   -X POST \
-  --data '{"name":"refreshObject", "objectName":""}'
+  --data '{"name": "refreshObject", "objectName": ""}'
 
 - Change WiFi SSID and password:
 
 .. code:: javascript
 
-  query = {
-    "name":"setParameterValues",
+  {
+    "name": "setParameterValues",
     "parameterValues": [
       ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID", "GenieACS", "xsd:string"],
       ["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey", "hello world", "xsd:string"]
@@ -139,7 +140,7 @@ Examples
 
   curl -i 'http://localhost:7557/devices/202BC1-BM632w-0000000/tasks?connection_request' \
   -X POST \
-  --data '{"name":"setParameterValues", "parameterValues":[["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID", "GenieACS", "xsd:string"],["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey", "hello world", "xsd:string"]]}'
+  --data '{"name":"setParameterValues", "parameterValues": [["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID", "GenieACS", "xsd:string"],["InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey", "hello world", "xsd:string"]]}'
 
 POST /tasks/\<task_id\>/retry
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,14 +181,14 @@ format is "\<device_id\>:\<channel\>".
 Example
 ^^^^^^^
 
-.. code: bash
+.. code:: bash
 
   curl -i 'http://localhost:7557/faults/202BC1-BM632w-0000000:default' -X DELETE
 
 DELETE /devices/\<device_id\>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Delete the given device.
+Delete the given device from the database.
 
 Example
 ^^^^^^^
@@ -196,8 +197,10 @@ Example
 
   curl -X DELETE -i 'http://localhost:7557/devices/202BC1-BM632w-000001'
 
-Note that the device will be registered again in the ACS the next time it
-connects to genieacs, for instance, on the next PERIODIC event.
+.. note::
+
+  Note that the device will be registered again when/if it contacts the ACS
+  again (e.g. on the next periodic inform).
 
 POST /devices/\<device_id\>/tags/\<tag\>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,7 +227,7 @@ Remove a tag from a device.
 
 *device_id*: The ID of the device.
 
-*tag*: The tag to be assigned.
+*tag*: The tag to be removed.
 
 Example
 ^^^^^^^
@@ -240,8 +243,7 @@ PUT /presets/\<preset_name\>
 
 Create or update a preset. Returns status code 200 if the preset has been
 added/updated successfully. The body of the request is a JSON representation of
-the preset. Refer to below for reference on presets format. The preset name
-cannot contain ".".
+the preset. Refer to :ref:`presets` section below for details about its format.
 
 *preset_name*: The name of the preset.
 
@@ -255,7 +257,7 @@ Create a preset to set 5 minutes inform interval for all devices tagged with
 
   query = {
     "weight": 0,
-    "precondition": "{\"_tags\":\"test\"}"
+    "precondition": "{\"_tags\": \"test\"}"
     "configurations": [
       {
         "type": "value",
@@ -274,7 +276,7 @@ Create a preset to set 5 minutes inform interval for all devices tagged with
 
   curl -i 'http://localhost:7557/presets/inform' \
   -X PUT \
-  --data '{"weight": 0, "precondition": "{\"_tags\":\"test\"}", "configurations": [{"type": "value", "name": "InternetGatewayDevice.ManagementServer.PeriodicInformEnable", "value": "true"}, {"type": "value", "name": "InternetGatewayDevice.ManagementServer.PeriodicInformInterval", "value": "300"}]}'
+  --data '{"weight": 0, "precondition": "{\"_tags\": \"test\"}", "configurations": [{"type": "value", "name": "InternetGatewayDevice.ManagementServer.PeriodicInformEnable", "value": "true"}, {"type": "value", "name": "InternetGatewayDevice.ManagementServer.PeriodicInformInterval", "value": "300"}]}'
 
 DELETE /presets/\<preset_name\>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,20 +292,18 @@ Upload a new file or overwrite an existing one. Returns status code 200 if the
 file has been added/updated successfully. The file content should be sent as
 the request body.
 
-*file_name*: The name of the device.
+*file_name*: The name of the uploaded file.
 
-The meta info of the file are sent in the request headers. There are four meta
-info:
+The following file metadata may be sent as request headers:
 
-- *fileType*: For firmware images it should be "1 Firmware Upgrade Image".
+- ``fileType``: For firmware images it should be "1 Firmware Upgrade Image".
   Other common types are "2 Web Content" and "3 Vendor Configuration File".
 
-- *oui*: The OUI of the device model that this file belogs to.
+- ``oui``: The OUI of the device model that this file belogs to.
 
-- *productClass*: The product class of the device.
+- ``productClass``: The product class of the device.
 
-- *version*: In the case of firmware images, this refer to the firmware
-  version.
+- ``version``: In case of firmware images, this refer to the firmware version.
 
 Example
 ^^^^^^^
@@ -334,40 +334,24 @@ GET /files/
 
 Gets all previously uploaded files.
 
-GET /files/?query{"filename":"\<filename\>"}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GET /files/?query={"filename":"\<filename\>"}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Gets the previously uploaded file with corresponding filename.
+Find files using a query.
+
+.. _tasks:
 
 Tasks
 -----
 
-The &connection_request in the URL tells GenieACS to initiate a connection to
-the CPE. If the response from GenieACS is a 202 status code, that means the CPE
-didn't respond to the command before the timeout. The CPE could still be
-processing the request (or returning the response). Task ID can be found in the
-JSON Response Content as "_id":
+Find the different availabe tasks and their object structure.
+
+``getParameterValues``
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: javascript
 
-  {
-    "_id": "54dcacde2acb0b10130750d9",
-    "device": "00236a-96318REF-SR360NA0A4%252D0003196",
-    "name": "addObject",
-    "objectName": "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection",
-    "timestamp": "2015-02-12T13:38:38.256Z"
-  }
-
-If the response from GenieACS is 200, then the CPE responded before the timeout
-and any actions have been applied by the CPE (setParameterValues, reboot,
-refreshObject, etc).
-
-getParameterValues
-~~~~~~~~~~~~~~~~~~
-
-.. code:: javascript
-
-  query={
+  query = {
     "name": "getParameterValues",
     "parameterNames": [
       "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnectionNumberOfEntries",
@@ -381,12 +365,12 @@ getParameterValues
   -X POST \
   --data '{"name": "getParameterValues", "parameterNames": ["InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnectionNumberOfEntries", "InternetGatewayDevice.Time.NTPServer1", "InternetGatewayDevice.Time.Status"] }'
 
-You can request one item, or multiple items.
+You may request a single or multiple parameters at once.
 
-Once the CPE has returned the result to GenieACS, you can then query GenieACS
-for the CPE and extract out the value you want from the JSON.
+After the task has been executed successfully you can then fetch the CPE object
+and read the parameters from the JSON object.
 
-.. code: javascript
+.. code:: javascript
 
   query = {"_id": "00236a-96318REF-SR360NA0A4%2D0003196"}
 
@@ -394,8 +378,8 @@ for the CPE and extract out the value you want from the JSON.
 
   curl -i 'http://localhost:7557/devices/?query=%7B%22_id%22%3A%2200236a-96318REF-SR360NA0A4%252D0003196%22%7D'
 
-refreshObject
-~~~~~~~~~~~~~
+``refreshObject``
+~~~~~~~~~~~~~~~~~
 
 .. code:: bash
 
@@ -403,8 +387,8 @@ refreshObject
   -X POST \
   --data '{"name": "refreshObject", "objectName": "InternetGatewayDevice.WANDevice.1.WANConnectionDevice"}'
 
-setParameterValues
-~~~~~~~~~~~~~~~~~~
+``setParameterValues``
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: bash
 
@@ -412,7 +396,7 @@ setParameterValues
   -X POST \
   --data '{"name": "setParameterValues", "parameterValues": [["InternetGatewayDevice.ManagementServer.UpgradesManaged",false]]}'
 
-Multiple values can be set at one time, by adding multiple arrays to the
+Multiple values can be set at once by adding multiple arrays to the
 parameterValues key. For example:
 
 .. code:: javascript
@@ -422,13 +406,8 @@ parameterValues key. For example:
     parameterValues: [["InternetGatewayDevice.ManagementServer.UpgradesManaged", false], ["InternetGatewayDevice.Time.Enable", true], ["InternetGatewayDevice.Time.NTPServer1", "pool.ntp.org"]]
   }
 
-The server should reply with a 200 OK or a 202 Accepted and the parameter
-values as confirmation. In the latter case the task created is put in the
-queue. If the parameter values are not returned and the task is not placed,
-please note that the device ID must be URI-escaped.
-
-addObject
-~~~~~~~~~
+``addObject``
+~~~~~~~~~~~~~
 
 .. code:: bash
 
@@ -436,8 +415,8 @@ addObject
   -X POST \
   --data '{"name":"addObject","objectName":"InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection"}'
 
-reboot
-~~~~~~
+``reboot``
+~~~~~~~~~~
 
 .. code:: bash
 
@@ -445,8 +424,8 @@ reboot
   -X POST \
   --data '{"name": "reboot"}'
 
-factoryReset
-~~~~~~~~~~~~
+``factoryReset``
+~~~~~~~~~~~~~~~~
 
 .. code:: bash
 
@@ -454,8 +433,8 @@ factoryReset
   -X POST \
   --data '{"name": "factoryReset"}'
 
-download
-~~~~~~~~
+``download``
+~~~~~~~~~~~~
 
 .. code:: bash
 
@@ -463,28 +442,31 @@ download
   -X POST \
   --data '{"name": "download", "file": "mipsbe-6-42-lite.xml"}'
 
-Attribute "file" is "_id" from file API `curl -i 'http://localhost:7557/files/`.
+.. _presets:
 
 Presets
 -------
 
-Presets are like a configuration template. They have preconditions to which a
-device should match in order to get the configuration. A precondition could for
-example be the OUI == A1A1A1. Configuration could be that a parameter X should
-be set to Y.
+Presets assign a set of configuration or a Provision script to devices based on
+a precondition (search filter), schedule (cron expression), and events.
 
 Precondition
 ~~~~~~~~~~~~
 
-The precondition is a JSON hash of any preconditions to match. Examples are
-{"param":"value"} or {"param":"value","param2":{"$ne":"value2"}}. Other
-operators that can be used are $gt, $lt, $gte and $lte.
+The ``precondition`` property is a JSON string representation of the search
+filter to test if the preset applies to a given device. Examples preconditions
+are:
+
+- ``{"param": "value"}``
+- ``{"param": value", "param2": {"$ne": "value2"}}``
+
+Other operators that can be used are ``$gt``, ``$lt``, ``$gte`` and ``$lte``.
 
 Configuration
 ~~~~~~~~~~~~~
 
-The configuration is how to configure the device that matches a precondition.
-This is an array of hashes as shown below.
+The configuration property is an array containing the different configurations
+to be applied to a device, as shown below:
 
 .. code:: javascript
 
@@ -515,20 +497,16 @@ This is an array of hashes as shown below.
     },
   ] 
 
-The configuration type "provision" refers to the Provision resource. In the
-above example, if this preset is triggered by an incoming device inform
-message, then the provision named "YourProvisionName" will be called.
+The configuration type ``provision`` triggers a Provision script. In the
+example above, the provision named "YourProvisionName" will be executed.
 
 Provisions
 ----------
 
-A provision is triggered by a given preset. A provision is defined by the
-provision name and the javascript code to perform the actions.
-
 Create a provision
 ~~~~~~~~~~~~~~~~~~
 
-The provision javascript is input in the http body of the put request.
+The Provision's JavaScript code is the body of the HTTP PUT request.
 
 .. code:: bash
 
@@ -544,7 +522,7 @@ Delete a provision
 Get provisions
 ~~~~~~~~~~~~~~
 
-You can get all provisions:
+Get all provisions:
 
 .. code:: bash
 

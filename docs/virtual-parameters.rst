@@ -1,18 +1,20 @@
+.. _virtual-parameters:
+
 Virtual Parameters
 ==================
 
 Virtual parameters are user-defined parameters whose values are generated using
-custom Javascript code. Virtual parameters behave just like regular parameters
-and appear in the data model under ``VirtualParameters.`` path. Virtual
-parameter names cannot contain a period (``.``).
+a custom Javascript code. Virtual parameters behave just like regular
+parameters and appear in the data model under ``VirtualParameters.`` path.
+Virtual parameter names cannot contain a period (``.``).
 
 The execution environment for virtual parameters is almost identical to that of
-provisions. See :ref:`doc-provisions` for more details and examples. The only
+provisions. See :ref:`provisions` for more details and examples. The only
 differences between the scripts of provisions and virtual parameters are:
 
 - You can't pass custom arguments to virtual parameter scripts. Instead, the
-  variable ``args`` will hold current vparam timestamps and values as well as
-  the declared timestamps and values. For example:
+  variable ``args`` will hold the current vparam timestamps and values as well
+  as the declared timestamps and values. Like this:
 
 .. code:: javascript
 
