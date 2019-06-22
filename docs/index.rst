@@ -6,16 +6,45 @@
 Welcome to GenieACS's documentation!
 ====================================
 
+.. raw:: latex
+
+   \part{Installation}
+
 .. toctree::
-  :maxdepth: 2
-  :caption: Administration:
+  :maxdepth: 1
+  :caption: Installation
+
+  installation
+  configuration
+
+.. raw:: latex
+
+   \part{Administration}
+
+.. toctree::
+  :maxdepth: 1
+  :caption: Administration
 
   provisions
   virtual-parameters
 
+.. raw:: latex
+
+   \part{Integration}
+
 .. toctree::
-  :maxdepth: 2
-  :caption: Integration:
+  :maxdepth: 1
+  :caption: Integration
 
   extensions
   api-reference
+
+.. raw:: latex
+
+   \part{Security}
+
+.. toctree::
+  :maxdepth: 1
+  :caption: Security
+
+  security
