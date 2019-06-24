@@ -6,6 +6,9 @@
 Welcome to GenieACS's documentation!
 ====================================
 
+.. toctree::
+  :caption: Table of Contents
+
 .. raw:: latex
 
    \part{Installation}
@@ -14,8 +17,8 @@ Welcome to GenieACS's documentation!
   :maxdepth: 1
   :caption: Installation
 
-  installation
-  configuration
+  installation-guide
+  environment-variables
 
 .. raw:: latex
 
@@ -47,4 +50,6 @@ Welcome to GenieACS's documentation!
   :maxdepth: 1
   :caption: Security
 
-  security
+  https
+  cpe-authentication
+  roles-and-permissions

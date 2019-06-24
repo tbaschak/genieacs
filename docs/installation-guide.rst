@@ -1,5 +1,5 @@
-Installation
-=============
+Installation Guide
+==================
 
 This guide is for installing GenieACS on a single server on any Linux distro
 that uses *systemd* as its init system.
@@ -10,9 +10,9 @@ a load-balancing/failover setup.
 
 .. attention::
 
-  For production deployments make sure to configure SSL and change
-  ``UI_JWT_SECRET`` to a unique and secure string. Refer to :ref:`security`
-  section for details.
+  For production deployments make sure to configure TLS and change
+  ``UI_JWT_SECRET`` to a unique and secure string. Refer to :ref:`https`
+  section for how to enable TLS to encrypt traffic.
 
 Prerequisites
 -------------
@@ -63,8 +63,8 @@ Configure systemd
 
   Create the file :file:`/opt/genieacs/genieacs.env` to hold our configuration
   options which we pass to GenieACS as environment variables. See
-  :ref:`configuration` section for a list of all available configuration
-  options.
+  :ref:`environment-variables` section for a list of all available
+  configuration options.
 
   .. code:: bash
 
