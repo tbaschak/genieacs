@@ -18,7 +18,7 @@ import json
 
 # -- Project information -----------------------------------------------------
 
-project = 'GenieACS'
+project = 'GenieACS Documentation'
 copyright = '2019, GenieACS Inc.'
 author = 'GenieACS Inc.'
 
