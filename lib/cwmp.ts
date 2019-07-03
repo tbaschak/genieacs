@@ -342,7 +342,7 @@ async function transferComplete(sessionContext, rpc): Promise<void> {
     cwmpVersion: sessionContext.cwmpVersion
   });
 
-  return writeResponse(sessionContext, res);
+  return writeResponse(sessionContext, res, true);
 }
 
 // Append provisions and remove duplicates
